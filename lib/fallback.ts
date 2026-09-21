@@ -365,7 +365,7 @@ export interface FallbackInput {
 export function getFallbackReview(input: FallbackInput): string {
   const band = getBand(input.rating);
   const pool = SNIPPETS[input.visitType][band][input.lang][input.length];
-  // Rotate based on current minute to give some variety
-  const idx = Math.floor(Date.now() / 60000) % pool.length;
+  // Truly random pick — never the same twice in a row
+  const idx = Math.floor(Math.random() * pool.length);
   return pool[idx];
 }
