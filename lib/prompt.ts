@@ -36,8 +36,8 @@ export function buildPrompt(input: PromptInput): { system: string; user: string 
   const storeName = input.customName || STORE_CONFIG.name;
   const langInstruction =
     input.lang === "hi"
-      ? `Write in Devanagari Hindi in natural spoken style — the way a real Indian customer would write. Common English words like "phone", "warranty", "battery", "repair", "service" may stay in English. Do NOT sound translated. Do NOT use overly formal Hindi.`
-      : `Write in simple, conversational English.`;
+      ? `Write ONLY in pure, natural Devanagari Hindi. Do NOT mix English words unless they are very common brand terms. The entire output MUST be in Hindi script. Do NOT sound translated.`
+      : `Write ONLY in pure, natural English. The entire output MUST be in English.`;
 
   const toneMap: Record<number, string> = {
     5: "warm and enthusiastic",
@@ -66,7 +66,7 @@ RULES:
 3. Language: ${langInstruction}
 4. Length: STRICTLY follow — ${LENGTH_INSTRUCTIONS[input.length]}.
 5. Formatting: Write as a single continuous paragraph. ABSOLUTELY NO hyphens (-), bullet points, or numbered lists. Do not use symbols that look AI-generated.
-6. Vary phrasing and sentence openings every time. Sound like a real, casual human customer. Do NOT start with "I recently visited". Avoid marketing language and clichés.
+6. Creativity: Be highly creative and vary your phrasing significantly each time. DO NOT follow a fixed template. Sound like a real, casual human customer. Do NOT start with "I recently visited". Avoid marketing language and clichés.
 7. No emojis, no hashtags, no exaggerated superlatives, no mention of AI.
 8. Mention the store name "${storeName}" at most once, only if it fits naturally.
 9. Output ONLY the review text. No quotes, no preface, no explanation.`;

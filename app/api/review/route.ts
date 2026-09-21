@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
             { role: "system", "content": system },
             { role: "user", "content": user }
           ],
-          temperature: 1,
+          temperature: 1.1 + Math.random() * 0.4, // Between 1.1 and 1.5 for high creativity
           top_p: 0.95,
           max_tokens: 16384,
           stream: false,
@@ -104,7 +104,10 @@ export async function POST(req: NextRequest) {
       }
 
       const data = await response.json();
-      const candidate = data.choices?.[0]?.message?.content?.trim() || "";
+      let candidate = data.choices?.[0]?.message?.content?.trim() || "";
+      
+      // Post-processing to strictly remove any hyphens or common bullet points
+      candidate = candidate.replace(/[-*•]/g, "");
 
       const validation = validateReview(candidate, typedLang, typedLength);
       if (validation.valid) {
