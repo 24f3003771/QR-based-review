@@ -48,6 +48,7 @@ export default function Home() {
   const [rating, setRating] = useState(0);
   const [visitType, setVisitType] = useState<VisitTypeKey>("bought_phone");
   const [highlights, setHighlights] = useState<string[]>([]);
+  const [highlightLabels, setHighlightLabels] = useState<string[]>([]);
   const [reviewLength, setReviewLength] = useState<ReviewLength>("medium");
   const [review, setReview] = useState("");
   const [regenCount, setRegenCount] = useState(0);
@@ -128,9 +129,10 @@ export default function Home() {
     setStep(3);
   }
 
-  function handleChipsContinue(chips: string[]) {
+  function handleChipsContinue(chips: string[], labels: string[]) {
     setHighlights(chips);
-    logEvent(sessionId, "highlights_selected", { lang, highlights: chips });
+    setHighlightLabels(labels);
+    logEvent(sessionId, "highlights_selected", { lang, highlights: labels });
     setStep(4);
   }
 
@@ -146,7 +148,7 @@ export default function Home() {
   async function generateReview(len: ReviewLength, regen: number) {
     setStep(5);
 
-    // 8 second timeout → fallback
+    // 20 second timeout (deepseek thinking model takes longer)
     const timeout = new Promise<{ review: string; source: string }>((resolve) =>
       setTimeout(
         () =>
@@ -154,7 +156,7 @@ export default function Home() {
             review: getFallbackReview({ lang, rating, visitType: visitType, length: len }),
             source: "fallback",
           }),
-        8000
+        20000
       )
     );
 
@@ -165,7 +167,7 @@ export default function Home() {
         lang,
         rating,
         visitType,
-        highlights,
+        highlights: highlightLabels.length > 0 ? highlightLabels : highlights, // send human-readable labels
         length: len,
         sessionId,
         regenCount: regen,

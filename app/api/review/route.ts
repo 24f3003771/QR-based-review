@@ -61,6 +61,8 @@ export async function POST(req: NextRequest) {
   let review = "";
   let source: "ai" | "fallback" = "fallback";
 
+  const genSeed = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+
   const { system, user } = buildPrompt({
     lang: typedLang,
     rating: rating as number,
@@ -70,6 +72,7 @@ export async function POST(req: NextRequest) {
     extraNote: typeof extraNote === "string" ? extraNote : undefined,
     regenCount: typeof regenCount === "number" ? regenCount : 0,
     customName: typeof customName === "string" ? customName : undefined,
+    seed: genSeed,
   });
 
   // Try AI, then retry once, then fallback
@@ -106,8 +109,14 @@ export async function POST(req: NextRequest) {
       const data = await response.json();
       let candidate = data.choices?.[0]?.message?.content?.trim() || "";
       
-      // Post-processing to strictly remove any hyphens or common bullet points
-      candidate = candidate.replace(/[-*•]/g, "");
+      // Aggressive post-processing: strip any hyphens, dashes, bullets, asterisks
+      candidate = candidate
+        .replace(/^\s*[-\u2013\u2014*\u2022\u25CF\u25E6\d+\.]+\s*/gm, "") // strip list-like line starts
+        .replace(/\s*[-\u2013\u2014]\s*/g, " ")   // replace inline dashes with space
+        .replace(/\*/g, "")                         // strip asterisks
+        .replace(/\n{2,}/g, " ")                    // collapse paragraph breaks into space
+        .replace(/\n/g, " ")                        // collapse single newlines
+        .trim();
 
       const validation = validateReview(candidate, typedLang, typedLength);
       if (validation.valid) {

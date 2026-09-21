@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { Lang } from "@/lib/i18n";
 import { t } from "@/lib/i18n";
 import { getChips, type Chip } from "@/config/chips";
@@ -11,19 +11,32 @@ interface HighlightChipsProps {
   visitType: VisitTypeKey;
   rating: number;
   customChipsData?: string[];
-  onContinue: (selected: string[]) => void;
+  onContinue: (selected: string[], labels: string[]) => void;
 }
 
 const MAX_SELECT = 4;
 
-export default function HighlightChips({ lang, visitType, rating, customChipsData, onContinue }: HighlightChipsProps) {
-  let chips: Chip[] = [];
-  if (customChipsData && customChipsData.length > 0) {
-    chips = customChipsData.map((c, i) => ({ id: `custom_${i}`, en: c, hi: c }));
-  } else {
-    chips = getChips(visitType, rating);
+function shuffleArray<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
   }
-  
+  return a;
+}
+
+export default function HighlightChips({ lang, visitType, rating, customChipsData, onContinue }: HighlightChipsProps) {
+  // Chips are shuffled once on mount using useMemo
+  const chips = useMemo<Chip[]>(() => {
+    let raw: Chip[] = [];
+    if (customChipsData && customChipsData.length > 0) {
+      raw = customChipsData.map((c, i) => ({ id: `custom_${i}`, en: c, hi: c }));
+    } else {
+      raw = getChips(visitType, rating);
+    }
+    return shuffleArray(raw);
+  }, [visitType, rating, customChipsData]);
+
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   function toggleChip(id: string) {
@@ -39,6 +52,14 @@ export default function HighlightChips({ lang, visitType, rating, customChipsDat
   }
 
   const canContinue = selected.size >= 1;
+
+  function handleContinue() {
+    if (!canContinue) return;
+    // Pass both IDs (for tracking) and human-readable labels (for the prompt)
+    const selectedChips = chips.filter((c) => selected.has(c.id));
+    const labels = selectedChips.map((c) => (lang === "hi" ? c.hi : c.en));
+    onContinue(Array.from(selected), labels);
+  }
 
   return (
     <div className="chips-screen">
@@ -74,7 +95,7 @@ export default function HighlightChips({ lang, visitType, rating, customChipsDat
         <button
           id="chips-continue"
           className={`continue-btn ${canContinue ? "continue-btn-active" : "continue-btn-disabled"}`}
-          onClick={() => canContinue && onContinue(Array.from(selected))}
+          onClick={handleContinue}
           disabled={!canContinue}
           aria-disabled={!canContinue}
         >
