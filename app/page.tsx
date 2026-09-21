@@ -51,6 +51,7 @@ export default function Home() {
   const [highlightLabels, setHighlightLabels] = useState<string[]>([]);
   const [reviewLength, setReviewLength] = useState<ReviewLength>("medium");
   const [review, setReview] = useState("");
+  const [shownReviews, setShownReviews] = useState<string[]>([]); // de-dup tracker
   const [regenCount, setRegenCount] = useState(0);
   const [sessionId, setSessionId] = useState("");
   const [utm, setUtm] = useState("");
@@ -148,7 +149,7 @@ export default function Home() {
   async function generateReview(len: ReviewLength, regen: number) {
     setStep(5);
 
-    // 20 second timeout (deepseek thinking model takes longer)
+    // 12s fallback timeout
     const timeout = new Promise<{ review: string; source: string }>((resolve) =>
       setTimeout(
         () =>
@@ -156,7 +157,7 @@ export default function Home() {
             review: getFallbackReview({ lang, rating, visitType: visitType, length: len }),
             source: "fallback",
           }),
-        20000
+        12000
       )
     );
 
@@ -167,11 +168,12 @@ export default function Home() {
         lang,
         rating,
         visitType,
-        highlights: highlightLabels.length > 0 ? highlightLabels : highlights, // send human-readable labels
+        highlights: highlightLabels.length > 0 ? highlightLabels : highlights,
         length: len,
         sessionId,
         regenCount: regen,
         customName,
+        previousReviews: shownReviews.slice(-3), // last 3 shown reviews for de-dup
       }),
     })
       .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
@@ -188,6 +190,8 @@ export default function Home() {
     } catch {}
 
     setReview(result.review);
+    // Track this review so it is never shown again
+    setShownReviews((prev) => [...prev, result.review]);
     setStep(6);
   }
 

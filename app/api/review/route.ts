@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Validation ──────────────────────────────────────────────────────────────
-  const { lang, rating, visitType, highlights, length, extraNote, sessionId, regenCount, customName } = body;
+  const { lang, rating, visitType, highlights, length, extraNote, sessionId, regenCount, customName, previousReviews } = body;
 
   if (!VALID_LANGS.includes(lang as Lang)) {
     return NextResponse.json({ error: "Invalid lang" }, { status: 400 });
@@ -92,6 +92,7 @@ export async function POST(req: NextRequest) {
     extraNote: typeof extraNote === "string" ? extraNote : undefined,
     regenCount: typeof regenCount === "number" ? regenCount : 0,
     customName: typeof customName === "string" ? customName : undefined,
+    previousReviews: Array.isArray(previousReviews) ? (previousReviews as string[]).slice(-3) : [],
     seed: genSeed,
   });
 

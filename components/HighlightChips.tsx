@@ -3,39 +3,41 @@
 import { useMemo, useState } from "react";
 import type { Lang } from "@/lib/i18n";
 import { t } from "@/lib/i18n";
-import { getChips, type Chip } from "@/config/chips";
-import type { VisitTypeKey } from "@/config/chips";
+import { getRandomChips, type Chip, type VisitTypeKey } from "@/config/chips";
 
 interface HighlightChipsProps {
   lang: Lang;
   visitType: VisitTypeKey;
   rating: number;
   customChipsData?: string[];
-  onContinue: (selected: string[], labels: string[]) => void;
+  onContinue: (ids: string[], labels: string[]) => void;
 }
 
+const CHIPS_TO_SHOW = 6;
 const MAX_SELECT = 4;
 
-function shuffleArray<T>(arr: T[]): T[] {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
-export default function HighlightChips({ lang, visitType, rating, customChipsData, onContinue }: HighlightChipsProps) {
-  // Chips are shuffled once on mount using useMemo
+export default function HighlightChips({
+  lang,
+  visitType,
+  rating: _rating,
+  customChipsData,
+  onContinue,
+}: HighlightChipsProps) {
+  // Randomly pick CHIPS_TO_SHOW chips fresh on every mount
   const chips = useMemo<Chip[]>(() => {
-    let raw: Chip[] = [];
     if (customChipsData && customChipsData.length > 0) {
-      raw = customChipsData.map((c, i) => ({ id: `custom_${i}`, en: c, hi: c }));
-    } else {
-      raw = getChips(visitType, rating);
+      const all = customChipsData.map((c, i) => ({ id: `custom_${i}`, en: c, hi: c }));
+      // Shuffle and slice
+      for (let i = all.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [all[i], all[j]] = [all[j], all[i]];
+      }
+      return all.slice(0, CHIPS_TO_SHOW);
     }
-    return shuffleArray(raw);
-  }, [visitType, rating, customChipsData]);
+    return getRandomChips(visitType, CHIPS_TO_SHOW);
+  // Deliberately omitting rating/visitType from deps so chips only regenerate on component remount
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
@@ -55,7 +57,6 @@ export default function HighlightChips({ lang, visitType, rating, customChipsDat
 
   function handleContinue() {
     if (!canContinue) return;
-    // Pass both IDs (for tracking) and human-readable labels (for the prompt)
     const selectedChips = chips.filter((c) => selected.has(c.id));
     const labels = selectedChips.map((c) => (lang === "hi" ? c.hi : c.en));
     onContinue(Array.from(selected), labels);
@@ -85,12 +86,10 @@ export default function HighlightChips({ lang, visitType, rating, customChipsDat
         ))}
       </div>
 
-      {/* Hint */}
       {!canContinue && (
         <p className="chips-hint">{t("chips.hint", lang)}</p>
       )}
 
-      {/* Sticky Continue */}
       <div className="chips-footer">
         <button
           id="chips-continue"
@@ -100,9 +99,7 @@ export default function HighlightChips({ lang, visitType, rating, customChipsDat
           aria-disabled={!canContinue}
         >
           {t("chips.continue", lang)}
-          {canContinue && (
-            <span className="continue-count">{selected.size}</span>
-          )}
+          {canContinue && <span className="continue-count">{selected.size}</span>}
         </button>
       </div>
     </div>
