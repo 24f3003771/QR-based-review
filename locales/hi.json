@@ -1,0 +1,65 @@
+{
+  "lang.title": "अपनी भाषा चुनें",
+  "lang.subtitle": "जारी रखने के लिए चुनें",
+  "lang.hindi": "हिंदी",
+  "lang.english": "English",
+
+  "progress.step": "चरण {current} / {total}",
+  "back": "वापस",
+
+  "rating.title": "{store} में आपका अनुभव कैसा रहा?",
+  "rating.1": "बहुत बुरा",
+  "rating.2": "ठीक नहीं",
+  "rating.3": "ठीक-ठाक",
+  "rating.4": "अच्छा",
+  "rating.5": "बहुत बढ़िया",
+
+  "visit.title": "आज आपने क्या किया?",
+  "visit.bought": "फ़ोन खरीदा",
+  "visit.sold": "फ़ोन बेचा",
+  "visit.repair": "मरम्मत करवाई",
+  "visit.accessories": "एक्सेसरीज़ लीं",
+
+  "chips.title": "क्या पसंद आया?",
+  "chips.subtitle": "एक या ज़्यादा चुनें",
+  "chips.hint": "कम से कम एक विकल्प चुनें",
+  "chips.continue": "जारी रखें",
+
+  "length.title": "कितना बड़ा रिव्यू चाहिए?",
+  "length.short": "छोटा",
+  "length.short.desc": "1–2 वाक्य",
+  "length.medium": "मध्यम",
+  "length.medium.desc": "3–4 वाक्य",
+  "length.detailed": "विस्तृत",
+  "length.detailed.desc": "5–6 वाक्य",
+
+  "loading.text": "आपका रिव्यू तैयार हो रहा है…",
+  "loading.subtitle": "बस थोड़ा इंतज़ार",
+
+  "preview.title": "आपका रिव्यू तैयार है",
+  "preview.stars_reminder": "Google पर भी यही रेटिंग दें",
+  "preview.regenerate": "दूसरा वर्शन",
+  "preview.regenerate_limit": "और कोशिश नहीं",
+  "preview.cta": "Copy करें और Google पर Post करें",
+  "preview.tip": "अपने फ़ोन या दुकान की फ़ोटो भी ज़रूर जोड़ें",
+  "preview.private_feedback": "दुकान को निजी फ़ीडबैक भेजें",
+  "preview.footer": "यह ड्राफ्ट आपके चुने विकल्पों पर आधारित है। Post करने से पहले बदल सकते हैं।",
+  "preview.google_signed_in_tip": "Post करने के लिए Google में लॉगिन करें",
+  "preview.copied_toast": "रिव्यू copy हो गया! अब Google पर paste करें",
+  "preview.copy_failed": "Copy नहीं हुआ। नीचे टेक्स्ट को देर तक दबाकर copy करें",
+  "preview.open_google": "Google Reviews खोलें",
+
+  "thankyou.title": "धन्यवाद!",
+  "thankyou.subtitle": "आपकी राय हमारे लिए बहुत मायने रखती है।",
+  "thankyou.retry": "Post नहीं हुआ? फिर कोशिश करें",
+
+  "inapp.warning": "बेहतर अनुभव के लिए इस पेज को Chrome या Safari में खोलें।",
+  "inapp.button": "Browser में खोलें",
+
+  "ratelimit.message": "आपने बहुत ज़्यादा रिव्यू generate किए हैं। थोड़ी देर बाद कोशिश करें।",
+  "error.generic": "कुछ गड़बड़ हुई। कृपया फिर कोशिश करें।",
+
+  "extra.title": "कुछ और जोड़ना चाहते हैं?",
+  "extra.placeholder": "वैकल्पिक — कोई अतिरिक्त जानकारी लिखें",
+  "extra.skip": "छोड़ें"
+}

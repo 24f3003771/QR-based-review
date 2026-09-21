@@ -1,69 +1,294 @@
-import Image from "next/image";
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { v4 as uuidv4 } from "uuid";
+import ScreenWrapper from "@/components/ScreenWrapper";
+import LanguageSelect from "@/components/LanguageSelect";
+import RatingStars from "@/components/RatingStars";
+import VisitType from "@/components/VisitType";
+import HighlightChips from "@/components/HighlightChips";
+import LengthPicker, { type ReviewLength } from "@/components/LengthPicker";
+import LoadingScreen from "@/components/LoadingScreen";
+import ReviewPreview from "@/components/ReviewPreview";
+import ThankYouScreen from "@/components/ThankYouScreen";
+import InAppBrowserWarner from "@/components/InAppBrowserWarner";
+import type { Lang } from "@/lib/i18n";
+import type { VisitTypeKey } from "@/config/chips";
+import { getFallbackReview } from "@/lib/fallback";
+
+// Steps:  0=lang  1=rating  2=visit  3=chips  4=length  5=loading  6=preview  7=thankyou
+type Step = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
+
+const SESSION_KEY = "rt_session";
+const SESSION_PREVIEW_KEY = "rt_preview_text";
+
+function getOrCreateSession(): string {
+  try {
+    const existing = sessionStorage.getItem(SESSION_KEY);
+    if (existing) return existing;
+    const id = uuidv4();
+    sessionStorage.setItem(SESSION_KEY, id);
+    return id;
+  } catch {
+    return uuidv4();
+  }
+}
+
+function logEvent(sessionId: string, event: string, props?: Record<string, unknown>) {
+  fetch("/api/event", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ sessionId, event, ...props }),
+  }).catch(() => {});
+}
 
 export default function Home() {
+  const [step, setStep] = useState<Step>(0);
+  const [lang, setLang] = useState<Lang>("en");
+  const [rating, setRating] = useState(0);
+  const [visitType, setVisitType] = useState<VisitTypeKey>("bought_phone");
+  const [highlights, setHighlights] = useState<string[]>([]);
+  const [reviewLength, setReviewLength] = useState<ReviewLength>("medium");
+  const [review, setReview] = useState("");
+  const [regenCount, setRegenCount] = useState(0);
+  const [sessionId, setSessionId] = useState("");
+  const [utm, setUtm] = useState("");
+
+  const [customUrl, setCustomUrl] = useState("");
+  const [customName, setCustomName] = useState("");
+  const [customChipsData, setCustomChipsData] = useState<string[] | undefined>(undefined);
+
+  // Pull UTM + session on mount, check session storage for return detection
+  useEffect(() => {
+    const sid = getOrCreateSession();
+    setSessionId(sid);
+
+    const params = new URLSearchParams(window.location.search);
+    const utmParam = params.get("utm") ?? params.get("u") ?? "";
+    setUtm(utmParam);
+
+    try {
+      const urlParam = params.get("url");
+      if (urlParam) setCustomUrl(decodeURIComponent(atob(urlParam)));
+      
+      const nameParam = params.get("name");
+      if (nameParam) setCustomName(decodeURIComponent(atob(nameParam)));
+      
+      const chipsParam = params.get("chips");
+      if (chipsParam) setCustomChipsData(JSON.parse(decodeURIComponent(atob(chipsParam))));
+    } catch (e) {
+      console.error("Failed to parse custom parameters", e);
+    }
+
+    // Log QR scan
+    logEvent(sid, "qr_scanned", { utm: utmParam });
+
+    // Check if returning from Google (visibilitychange)
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible" && step === 6) {
+        setStep(7);
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, []);
+
+  // Re-register visibility handler when step changes to 6
+  useEffect(() => {
+    if (step !== 6) return;
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        // Small delay to avoid triggering immediately on step transition
+        setTimeout(() => {
+          setStep(7);
+        }, 1500);
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, [step]);
+
+  // ── Step handlers ────────────────────────────────────────────────────────────
+
+  function handleLangSelect(l: Lang) {
+    setLang(l);
+    logEvent(sessionId, "lang_selected", { lang: l });
+    setStep(1);
+  }
+
+  function handleRatingSelect(r: number) {
+    setRating(r);
+    logEvent(sessionId, "rating_selected", { lang, rating: r });
+    setStep(2);
+  }
+
+  function handleVisitSelect(v: VisitTypeKey) {
+    setVisitType(v);
+    logEvent(sessionId, "visit_selected", { lang, visit_type: v });
+    setStep(3);
+  }
+
+  function handleChipsContinue(chips: string[]) {
+    setHighlights(chips);
+    logEvent(sessionId, "highlights_selected", { lang, highlights: chips });
+    setStep(4);
+  }
+
+  async function handleLengthSelect(len: ReviewLength) {
+    setReviewLength(len);
+    setRegenCount(0);
+    logEvent(sessionId, "length_selected", { lang, length: len });
+    setStep(5); // Go to loading
+
+    await generateReview(len, 0);
+  }
+
+  async function generateReview(len: ReviewLength, regen: number) {
+    setStep(5);
+
+    // 8 second timeout → fallback
+    const timeout = new Promise<{ review: string; source: string }>((resolve) =>
+      setTimeout(
+        () =>
+          resolve({
+            review: getFallbackReview({ lang, rating, visitType: visitType, length: len }),
+            source: "fallback",
+          }),
+        8000
+      )
+    );
+
+    const fetchReview = fetch("/api/review", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        lang,
+        rating,
+        visitType,
+        highlights,
+        length: len,
+        sessionId,
+        regenCount: regen,
+        customName,
+      }),
+    })
+      .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
+      .catch(() => ({
+        review: getFallbackReview({ lang, rating, visitType: visitType, length: len }),
+        source: "fallback",
+      }));
+
+    const result = await Promise.race([fetchReview, timeout]);
+
+    // Save to session storage for refresh resilience
+    try {
+      sessionStorage.setItem(SESSION_PREVIEW_KEY, result.review);
+    } catch {}
+
+    setReview(result.review);
+    setStep(6);
+  }
+
+  async function handleRegenerate() {
+    if (regenCount >= 3) return;
+    const next = regenCount + 1;
+    setRegenCount(next);
+    logEvent(sessionId, "review_regenerated", { lang, regen_count: next });
+    await generateReview(reviewLength, next);
+  }
+
+  function handleGoogleOpened() {
+    // visibilitychange will fire when they come back; already wired up
+  }
+
+  function goBack() {
+    if (step === 1) setStep(0);
+    else if (step === 2) setStep(1);
+    else if (step === 3) setStep(2);
+    else if (step === 4) setStep(3);
+    else if (step === 6) setStep(4); // back from preview → length
+  }
+
+  // ── Restore review on page refresh ──────────────────────────────────────────
+  useEffect(() => {
+    if (step === 6) {
+      try {
+        const saved = sessionStorage.getItem(SESSION_PREVIEW_KEY);
+        if (saved && !review) setReview(saved);
+      } catch {}
+    }
+  }, [step]);
+
+  // ── Render ───────────────────────────────────────────────────────────────────
+
+  // S0: Language select (no header chrome)
+  if (step === 0) {
+    return (
+      <div className="app-root">
+        <InAppBrowserWarner lang="en" />
+        <LanguageSelect onSelect={handleLangSelect} />
+      </div>
+    );
+  }
+
+  // S7: Thank you
+  if (step === 7) {
+    return (
+      <div className="app-root">
+        <ScreenWrapper lang={lang}>
+          <ThankYouScreen lang={lang} />
+        </ScreenWrapper>
+      </div>
+    );
+  }
+
+  // Steps 1–6 (with header/progress)
+  const stepNumber = step as number;
+  const displayStep = stepNumber <= 4 ? stepNumber : stepNumber === 6 ? 5 : undefined;
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+    <div className="app-root">
+      <InAppBrowserWarner lang={lang} />
+      <ScreenWrapper
+        lang={lang}
+        step={displayStep}
+        totalSteps={5}
+        onBack={step > 1 && step !== 5 ? goBack : undefined}
+      >
+        {step === 1 && (
+          <RatingStars lang={lang} onSelect={handleRatingSelect} />
+        )}
+        {step === 2 && (
+          <VisitType lang={lang} onSelect={handleVisitSelect} />
+        )}
+        {step === 3 && (
+          <HighlightChips
+            lang={lang}
+            visitType={visitType}
+            rating={rating}
+            customChipsData={customChipsData}
+            onContinue={handleChipsContinue}
+          />
+        )}
+        {step === 4 && (
+          <LengthPicker lang={lang} onSelect={handleLengthSelect} />
+        )}
+        {step === 5 && (
+          <LoadingScreen lang={lang} />
+        )}
+        {step === 6 && (
+          <ReviewPreview
+            lang={lang}
+            rating={rating}
+            review={review}
+            regenCount={regenCount}
+            customMapsUrl={customUrl}
+            onRegenerate={handleRegenerate}
+            sessionId={sessionId}
+            onGoogleOpened={handleGoogleOpened}
+          />
+        )}
+      </ScreenWrapper>
     </div>
   );
 }

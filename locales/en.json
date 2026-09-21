@@ -1,0 +1,65 @@
+{
+  "lang.title": "Choose your language",
+  "lang.subtitle": "Select to continue",
+  "lang.hindi": "हिंदी",
+  "lang.english": "English",
+
+  "progress.step": "Step {current} of {total}",
+  "back": "Back",
+
+  "rating.title": "How was your experience at {store}?",
+  "rating.1": "Very bad",
+  "rating.2": "Not good",
+  "rating.3": "Okay",
+  "rating.4": "Good",
+  "rating.5": "Excellent",
+
+  "visit.title": "What brought you in today?",
+  "visit.bought": "Bought a phone",
+  "visit.sold": "Sold my phone",
+  "visit.repair": "Got a repair",
+  "visit.accessories": "Bought accessories",
+
+  "chips.title": "What stood out?",
+  "chips.subtitle": "Pick one or more",
+  "chips.hint": "Pick at least one option",
+  "chips.continue": "Continue",
+
+  "length.title": "How long should your review be?",
+  "length.short": "Short",
+  "length.short.desc": "1–2 sentences",
+  "length.medium": "Medium",
+  "length.medium.desc": "3–4 sentences",
+  "length.detailed": "Detailed",
+  "length.detailed.desc": "5–6 sentences",
+
+  "loading.text": "Writing your review…",
+  "loading.subtitle": "Almost ready",
+
+  "preview.title": "Your review is ready",
+  "preview.stars_reminder": "Give the same rating on Google",
+  "preview.regenerate": "Try another",
+  "preview.regenerate_limit": "No more tries",
+  "preview.cta": "Copy & Post on Google",
+  "preview.tip": "Don't forget to add a photo of your phone or the store",
+  "preview.private_feedback": "Send private feedback to the store",
+  "preview.footer": "This draft is based on your selections. You can edit it before posting.",
+  "preview.google_signed_in_tip": "You need to be signed in to Google to post",
+  "preview.copied_toast": "Review copied! Now paste it on Google",
+  "preview.copy_failed": "Copy failed. Press and hold the text below to copy",
+  "preview.open_google": "Open Google Reviews",
+
+  "thankyou.title": "Thank you!",
+  "thankyou.subtitle": "Your feedback means a lot to us.",
+  "thankyou.retry": "Could not post? Try again",
+
+  "inapp.warning": "For the best experience, open this page in Chrome or Safari.",
+  "inapp.button": "Open in Browser",
+
+  "ratelimit.message": "You've generated too many reviews. Please try again in a while.",
+  "error.generic": "Something went wrong. Please try again.",
+
+  "extra.title": "Anything else to add?",
+  "extra.placeholder": "Optional — add any extra details",
+  "extra.skip": "Skip"
+}
